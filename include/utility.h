@@ -101,6 +101,7 @@ public:
     float lidarMaxRange;
 
     // IMU
+    int imuType;
     float imuAccNoise;
     float imuGyrNoise;
     float imuAccBiasN;
@@ -202,6 +203,7 @@ public:
         nh.param<float>("lio_sam/lidarMinRange", lidarMinRange, 1.0);
         nh.param<float>("lio_sam/lidarMaxRange", lidarMaxRange, 1000.0);
 
+        nh.param<int>("lio_sam/imuType", imuType, 0);
         nh.param<float>("lio_sam/imuAccNoise", imuAccNoise, 0.01);
         nh.param<float>("lio_sam/imuGyrNoise", imuGyrNoise, 0.001);
         nh.param<float>("lio_sam/imuAccBiasN", imuAccBiasN, 0.0002);
@@ -267,18 +269,21 @@ public:
         imu_out.angular_velocity.y = gyr.y();
         imu_out.angular_velocity.z = gyr.z();
 
-        // rotate roll pitch yaw
-        Eigen::Quaterniond q_from(imu_in.orientation.w, imu_in.orientation.x, imu_in.orientation.y, imu_in.orientation.z);
-        Eigen::Quaterniond q_final = q_from * extQRPY;
-        imu_out.orientation.x = q_final.x();
-        imu_out.orientation.y = q_final.y();
-        imu_out.orientation.z = q_final.z();
-        imu_out.orientation.w = q_final.w();
-
-        if (sqrt(q_final.x()*q_final.x() + q_final.y()*q_final.y() + q_final.z()*q_final.z() + q_final.w()*q_final.w()) < 0.1)
+        if(imuType)
         {
-            ROS_ERROR("Invalid quaternion, please use a 9-axis IMU!");
-            ros::shutdown();
+            // rotate roll pitch yaw
+            Eigen::Quaterniond q_from(imu_in.orientation.w, imu_in.orientation.x, imu_in.orientation.y, imu_in.orientation.z);
+            Eigen::Quaterniond q_final = q_from * extQRPY;
+            imu_out.orientation.x = q_final.x();
+            imu_out.orientation.y = q_final.y();
+            imu_out.orientation.z = q_final.z();
+            imu_out.orientation.w = q_final.w();
+
+            if (sqrt(q_final.x()*q_final.x() + q_final.y()*q_final.y() + q_final.z()*q_final.z() + q_final.w()*q_final.w()) < 0.1)
+            {
+                ROS_ERROR("Invalid quaternion, please use a 9-axis IMU!");
+                ros::shutdown();
+            }
         }
 
         return imu_out;

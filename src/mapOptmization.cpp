@@ -829,7 +829,7 @@ public:
         }
 
         // use imu incremental estimation for pose guess (only rotation)
-        if (cloudInfo.imuAvailable == true)
+        if (cloudInfo.imuAvailable == true && imuType)
         {
             Eigen::Affine3f transBack = pcl::getTransformation(0, 0, 0, cloudInfo.imuRollInit, cloudInfo.imuPitchInit, cloudInfo.imuYawInit);
             Eigen::Affine3f transIncre = lastImuTransformation.inverse() * transBack;
@@ -1311,7 +1311,7 @@ public:
 
     void transformUpdate()
     {
-        if (cloudInfo.imuAvailable == true)
+        if (cloudInfo.imuAvailable == true && imuType)
         {
             if (std::abs(cloudInfo.imuPitchInit) < 1.4)
             {
@@ -1664,7 +1664,7 @@ public:
             increOdomAffine = increOdomAffine * affineIncre;
             float x, y, z, roll, pitch, yaw;
             pcl::getTranslationAndEulerAngles (increOdomAffine, x, y, z, roll, pitch, yaw);
-            if (cloudInfo.imuAvailable == true)
+            if (cloudInfo.imuAvailable == true && imuType)
             {
                 if (std::abs(cloudInfo.imuPitchInit) < 1.4)
                 {
