@@ -1697,6 +1697,11 @@ public:
                 laserOdomIncremental.pose.covariance[0] = 1;
             else
                 laserOdomIncremental.pose.covariance[0] = 0;
+            
+            printf("odom %f, %f, %f, %f, %f, %f\n", transformTobeMapped[3], transformTobeMapped[4], transformTobeMapped[5],
+            transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
+            printf("odIN %f, %f, %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw);
+            std::cout << endl;
         }
         pubLaserOdometryIncremental.publish(laserOdomIncremental);
     }
@@ -1717,6 +1722,7 @@ public:
             *cloudOut += *transformPointCloud(laserCloudCornerLastDS,  &thisPose6D);
             *cloudOut += *transformPointCloud(laserCloudSurfLastDS,    &thisPose6D);
             publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp, odometryFrame);
+            //ROS_INFO("cloudOut1:addr-%p, num-%ld", cloudOut, cloudOut->size());
         }
         // publish registered high-res raw cloud
         if (pubCloudRegisteredRaw.getNumSubscribers() != 0)
@@ -1726,6 +1732,8 @@ public:
             PointTypePose thisPose6D = trans2PointTypePose(transformTobeMapped);
             *cloudOut = *transformPointCloud(cloudOut,  &thisPose6D);
             publishCloud(pubCloudRegisteredRaw, cloudOut, timeLaserInfoStamp, odometryFrame);
+            //ROS_INFO("cloudOut2:addr-%p, num-%ld", cloudOut, cloudOut->size());
+            //std::cout << endl;
         }
         // publish path
         if (pubPath.getNumSubscribers() != 0)
