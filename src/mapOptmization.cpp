@@ -1632,7 +1632,7 @@ public:
 
     void publishOdometry()
     {
-        // Publish odometry for ROS (global)
+        // Publish odometry for ROS (global)  lio_sam/mapping/odometry
         nav_msgs::Odometry laserOdometryROS;
         laserOdometryROS.header.stamp = timeLaserInfoStamp;
         laserOdometryROS.header.frame_id = odometryFrame;
@@ -1650,7 +1650,7 @@ public:
         tf::StampedTransform trans_odom_to_lidar = tf::StampedTransform(t_odom_to_lidar, timeLaserInfoStamp, odometryFrame, "lidar_link");
         br.sendTransform(trans_odom_to_lidar);
 
-        // Publish odometry for ROS (incremental)
+        // Publish odometry for ROS (incremental) lio_sam/mapping/odometry_incremental
         static bool lastIncreOdomPubFlag = false;
         static nav_msgs::Odometry laserOdomIncremental; // incremental odometry msg
         static Eigen::Affine3f increOdomAffine; // incremental odometry in affine
