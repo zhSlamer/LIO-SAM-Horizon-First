@@ -16,6 +16,8 @@ rosrun lio_sam horizonFormatConverter
 ```
 2. 使用horizon内置IMU，use_internal_imu = true  
 BMI1088输出加速度单位为g， gnorm=9.805, 加速度乘以g，转为m/s^2
+  
+3.能够运行TIERS DATASETS，LILI-OM DATASETS  
 
 2023-3-6：  
 增加imuType变量，适配6轴和9轴，精度变化不大 
