@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   message_generation
   visualization_msgs
+  livox_ros_driver
 )
 
 find_package(OpenMP REQUIRED)
@@ -82,6 +83,11 @@ link_directories(
 ###########
 ## Build ##
 ###########
+
+# LivoxHorizon format converter
+add_executable(horizonFormatConverter src/horizonFormatConverter.cpp)
+#add_dependencies(horizonFormatConverter ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(horizonFormatConverter ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
 # Range Image Projection
 add_executable(${PROJECT_NAME}_imageProjection src/imageProjection.cpp)

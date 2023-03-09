@@ -260,7 +260,7 @@ public:
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "lio_sam");
+    ros::init(argc, argv, "lio_sam1");
 
     FeatureExtraction FE;
 

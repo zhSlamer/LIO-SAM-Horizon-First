@@ -1,14 +1,8 @@
 lio_sam:
 
   # Topics
-  horizonCloudTopic : "/livox/lidar"
-  pointCloudTopic: "/points_raw"               # Point cloud data
-  imuTopic: "/livox/imu"               # IMU data
-  # imuTopic: "/livox/imu" 
-  # imuTopic: "/imu/data" 
-  # pointCloudTopic: "/points_raw"             # Point cloud data
-  # imuTopic: "/avia/livox/imu" 
-  # imuTopic: "/os1_cloud_node/imu"
+  pointCloudTopic: "/velodyne_points"               # Point cloud data
+  imuTopic: "/os1_cloud_node/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
   gpsTopic: "odometry/gpsz"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
@@ -29,56 +23,34 @@ lio_sam:
   savePCDDirectory: "/Downloads/LOAM/"        # in your home folder, starts and ends with "/". Warning: the code deletes "LOAM" folder then recreates it. See "mapOptimization" for implementation
 
   # Sensor Settings
-  sensor: livox                            # lidar sensor type, 'velodyne' or 'ouster' or 'livox'
-  N_SCAN: 6                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
-  Horizon_SCAN: 4000                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
+  sensor: velodyne                            # lidar sensor type, 'velodyne' or 'ouster' or 'livox'
+  N_SCAN: 16                                  # number of lidar channel (i.e., Velodyne/Ouster: 16, 32, 64, 128, Livox Horizon: 6)
+  Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
   downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
   lidarMinRange: 1.0                          # default: 1.0, minimum lidar range to be used
-  lidarMaxRange: 500.0                       # default: 1000.0, maximum lidar range to be used
+  lidarMaxRange: 1000.0                       # default: 1000.0, maximum lidar range to be used
 
   # IMU Settings
-  use_internal_imu : true                     # use livox horizon internal imu *gnorm=9.805
   imuType: 0                                  # 0:6axis 1:9axis
-  #------------hoirozn bmi1088 imu-----------
-  imuAccNoise: 0.08
-  imuGyrNoise: 0.004
-  imuAccBiasN: 2.0e-4
-  imuGyrBiasN: 2.0e-5
+  imuAccNoise: 3.9939570888238808e-03
+  imuGyrNoise: 1.5636343949698187e-03
+  imuAccBiasN: 6.4356659353532566e-05
+  imuGyrBiasN: 3.5640318696367613e-05
   imuGravity: 9.80511
   imuRPYWeight: 0.01
 
-  #------------liosam imu-----------------------
-  # imuAccNoise: 3.9939570888238808e-03
-  # imuGyrNoise: 1.5636343949698187e-03
-  # imuAccBiasN: 6.4356659353532566e-05
-  # imuGyrBiasN: 3.5640318696367613e-05
-  # imuGravity: 9.80511
-  # imuRPYWeight: 0.01
-
-  # Extrinsics: T_lb (lidar -> imu, imu to lidar)
-  # extrinsicTrans: [-0.05512, -0.02226, 0.0297]  #horizon
-  # extrinsicTrans: [0.18, 0.30, 0.17]            #os1
-  # extrinsicTrans: [0, 0.06, 0]      #avia
-
+  # Extrinsics: T_lb (lidar -> imu)
+  extrinsicTrans: [0.27, 0.47, -0.08]
+  #extrinsicTrans: [0.09, 0.17, -0.25]
   # extrinsicRot: [-1, 0, 0,
   #                 0, 1, 0,
   #                 0, 0, -1]
-
-  # lili-om horizon dataset /livox/imu
-  extrinsicTrans: [-0.05512, -0.02226, 0.0297]  #lili-om horizon /imu/data
-  extrinsicRot: [ 1, 0, 0,
-                  0, 1, 0,
-                  0, 0, 1]
-
-  # lili-om horizon dataset /imu/data
-  # extrinsicTrans: [-0.0265, 0.0202, 0.05309]  #lili-om horizon /imu/data
-  # extrinsicRot: [ -1, 0, 0,
-  #                 0, -1, 0,
-  #                 0, 0, 1]
-
   extrinsicRPY: [0, -1, 0,
                  1, 0, 0,
                  0, 0, 1]
+  extrinsicRot: [1, 0, 0,
+                  0, 1, 0,
+                  0, 0, 1]
   # extrinsicRPY: [1, 0, 0,
   #                 0, 1, 0,
   #                 0, 0, 1]
@@ -90,7 +62,7 @@ lio_sam:
   surfFeatureMinValidNum: 100
 
   # voxel filter paprams
-  odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor leafSize设置越大，体素格子也越大，滤波明显
+  odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor
   mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
   mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
 
@@ -103,7 +75,7 @@ lio_sam:
   mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
 
   # Surrounding map
-  surroundingkeyframeAddingDistThreshold: 1.0     # meters, regulate keyframe adding threshold
+  surroundingkeyframeAddingDistThreshold: 1.0   # meters, regulate keyframe adding threshold
   surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
   surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
   surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)

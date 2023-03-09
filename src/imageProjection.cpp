@@ -93,7 +93,7 @@ public:
     {
         subImu        = nh.subscribe<sensor_msgs::Imu>(imuTopic, 2000, &ImageProjection::imuHandler, this, ros::TransportHints().tcpNoDelay());
         subOdom       = nh.subscribe<nav_msgs::Odometry>(odomTopic+"_incremental", 2000, &ImageProjection::odometryHandler, this, ros::TransportHints().tcpNoDelay());
-        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 5, &ImageProjection::cloudHandler, this, ros::TransportHints().tcpNoDelay());
+        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 200, &ImageProjection::cloudHandler, this, ros::TransportHints().tcpNoDelay());
 
         pubExtractedCloud = nh.advertise<sensor_msgs::PointCloud2> ("lio_sam/deskew/cloud_deskewed", 1);
         pubLaserCloudInfo = nh.advertise<lio_sam::cloud_info> ("lio_sam/deskew/cloud_info", 1);
@@ -154,15 +154,18 @@ public:
         imuQueue.push_back(thisImu);
 
         // debug IMU data
-        // cout << std::setprecision(6);
-        // cout << "IMU acc: " << endl;
-        // cout << "x: " << thisImu.linear_acceleration.x << 
-        //       ", y: " << thisImu.linear_acceleration.y << 
-        //       ", z: " << thisImu.linear_acceleration.z << endl;
-        // cout << "IMU gyro: " << endl;
-        // cout << "x: " << thisImu.angular_velocity.x << 
-        //       ", y: " << thisImu.angular_velocity.y << 
-        //       ", z: " << thisImu.angular_velocity.z << endl;
+        
+        cout << "---------------------HORIZON----------------------------" << endl;
+        cout << "horizon time:" << thisImu.header.stamp.sec << " , "<<thisImu.header.stamp.nsec << endl;
+        cout << std::setprecision(6);
+        cout << "IMU acc: " << endl;
+        cout << "x: " << thisImu.linear_acceleration.x << 
+              ", y: " << thisImu.linear_acceleration.y << 
+              ", z: " << thisImu.linear_acceleration.z << endl;
+        cout << "IMU gyro: " << endl;
+        cout << "x: " << thisImu.angular_velocity.x << 
+              ", y: " << thisImu.angular_velocity.y << 
+              ", z: " << thisImu.angular_velocity.z << endl;
         // double imuRoll, imuPitch, imuYaw;
         // tf::Quaternion orientation;
         // tf::quaternionMsgToTF(thisImu.orientation, orientation);
@@ -180,10 +183,16 @@ public:
     void cloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg)
     {
         if (!cachePointCloud(laserCloudMsg))
+        {
+            cout << "cache not well" << endl;
             return;
+        }
 
         if (!deskewInfo())
+        {
+            cout << "deskewInfo not well" << endl;
             return;
+        }
 
         projectPointCloud();
 
@@ -192,12 +201,14 @@ public:
         publishClouds();
 
         resetParameters();
+
     }
 
     bool cachePointCloud(const sensor_msgs::PointCloud2ConstPtr& laserCloudMsg)
     {
         // cache point cloud
         cloudQueue.push_back(*laserCloudMsg);
+        // cout << "cloudQueue.size():" << cloudQueue.size() << endl;
         if (cloudQueue.size() <= 2)
             return false;
 
@@ -207,6 +218,7 @@ public:
         if (sensor == SensorType::VELODYNE || sensor == SensorType::LIVOX)
         {
             pcl::moveFromROSMsg(currentCloudMsg, *laserCloudIn);
+            //cout << "converter2ROSMsg" << endl;
         }
         else if (sensor == SensorType::OUSTER)
         {
@@ -234,6 +246,7 @@ public:
 
         // get timestamp
         cloudHeader = currentCloudMsg.header;
+        //cout << "frame_id:" << cloudHeader.frame_id << endl;
         timeScanCur = cloudHeader.stamp.toSec();
         timeScanEnd = timeScanCur + laserCloudIn->points.back().time;
 
@@ -279,7 +292,7 @@ public:
             if (deskewFlag == -1)
                 ROS_WARN("Point cloud timestamp not available, deskew function disabled, system will drift significantly!");
         }
-
+        //cout << "cache is ok" << endl;
         return true;
     }
 
@@ -287,10 +300,14 @@ public:
     {
         std::lock_guard<std::mutex> lock1(imuLock);
         std::lock_guard<std::mutex> lock2(odoLock);
-
         // make sure IMU data available for the scan
+        if(imuQueue.empty())
+        {
+            cout << "imuQueue is empty()" << endl;
+        }
         if (imuQueue.empty() || imuQueue.front().header.stamp.toSec() > timeScanCur || imuQueue.back().header.stamp.toSec() < timeScanEnd)
         {
+            cout << "IMU time is wrong" << endl;
             ROS_DEBUG("Waiting for IMU data ...");
             return false;
         }
@@ -315,7 +332,10 @@ public:
         }
 
         if (imuQueue.empty())
+        {
+            cout << "imuQueue is empty" << endl;
             return;
+        }            
 
         imuPointerCur = 0;
 
@@ -332,7 +352,10 @@ public:
             }
 
             if (currentImuTime > timeScanEnd + 0.01)
+            {
+                //cout << "currentImuTime > timeScanEnd+0.01" << endl;
                 break;
+            }
 
             if (imuPointerCur == 0){
                 imuRotX[0] = 0;
@@ -359,8 +382,10 @@ public:
         --imuPointerCur;
 
         if (imuPointerCur <= 0)
+        {
+            cout << "imuPointerCur<=0" << endl;
             return;
-
+        }
         cloudInfo.imuAvailable = true;
     }
 
@@ -586,7 +611,6 @@ public:
             {
                 if (rangeMat.at<float>(i,j) != FLT_MAX)
                 {
-                    // mark the points' column index for marking occlusion later
                     cloudInfo.pointColInd[count] = j;
                     // save range info
                     cloudInfo.pointRange[count] = rangeMat.at<float>(i,j);

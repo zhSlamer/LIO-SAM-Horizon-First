@@ -71,6 +71,7 @@ public:
     std::string robot_id;
 
     //Topics
+    string horizonCloudTopic;
     string pointCloudTopic;
     string imuTopic;
     string odomTopic;
@@ -101,6 +102,8 @@ public:
     float lidarMaxRange;
 
     // IMU
+    bool use_internal_imu;
+    const double gnorm = 9.805;
     int imuType;
     float imuAccNoise;
     float imuGyrNoise;
@@ -158,6 +161,7 @@ public:
     {
         nh.param<std::string>("/robot_id", robot_id, "roboat");
 
+        nh.param<std::string>("lio_sam/horizonCloudTopic", horizonCloudTopic, "livox/lidar");
         nh.param<std::string>("lio_sam/pointCloudTopic", pointCloudTopic, "points_raw");
         nh.param<std::string>("lio_sam/imuTopic", imuTopic, "imu_correct");
         nh.param<std::string>("lio_sam/odomTopic", odomTopic, "odometry/imu");
@@ -203,6 +207,7 @@ public:
         nh.param<float>("lio_sam/lidarMinRange", lidarMinRange, 1.0);
         nh.param<float>("lio_sam/lidarMaxRange", lidarMaxRange, 1000.0);
 
+        nh.param<bool>("lio_sam/use_internal_imu", use_internal_imu, false);
         nh.param<int>("lio_sam/imuType", imuType, 0);
         nh.param<float>("lio_sam/imuAccNoise", imuAccNoise, 0.01);
         nh.param<float>("lio_sam/imuGyrNoise", imuGyrNoise, 0.001);
@@ -258,6 +263,13 @@ public:
         sensor_msgs::Imu imu_out = imu_in;
         // rotate acceleration
         Eigen::Vector3d acc(imu_in.linear_acceleration.x, imu_in.linear_acceleration.y, imu_in.linear_acceleration.z);
+        // livox-horizon use internal imu its acc unit is g=9.805, so use_internal_imu true to m/s^2
+        if(use_internal_imu)
+        {
+            acc.x() *= gnorm;
+            acc.y() *= gnorm;
+            acc.z() *= gnorm;
+        }
         acc = extRot * acc;
         imu_out.linear_acceleration.x = acc.x();
         imu_out.linear_acceleration.y = acc.y();

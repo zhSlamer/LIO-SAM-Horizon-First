@@ -56,7 +56,7 @@ lio_sam:
   # LOAM feature threshold
   edgeThreshold: 1.0
   surfThreshold: 0.1
-  edgeFeatureMinValidNum: 1
+  edgeFeatureMinValidNum: 10
   surfFeatureMinValidNum: 100
 
   # voxel filter paprams

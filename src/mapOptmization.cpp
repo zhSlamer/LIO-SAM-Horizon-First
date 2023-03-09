@@ -1698,10 +1698,10 @@ public:
             else
                 laserOdomIncremental.pose.covariance[0] = 0;
             
-            printf("odom %f, %f, %f, %f, %f, %f\n", transformTobeMapped[3], transformTobeMapped[4], transformTobeMapped[5],
-            transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
-            printf("odIN %f, %f, %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw);
-            std::cout << endl;
+            // printf("odom %f, %f, %f, %f, %f, %f\n", transformTobeMapped[3], transformTobeMapped[4], transformTobeMapped[5],
+            // transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
+            // printf("odIN %f, %f, %f, %f, %f, %f\n", x, y, z, roll, pitch, yaw);
+            // std::cout << endl;
         }
         pubLaserOdometryIncremental.publish(laserOdomIncremental);
     }

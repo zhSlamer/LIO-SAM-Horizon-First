@@ -11,6 +11,13 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </joint>
 
+  <link name="horizon_frame"> </link>
+  <joint name="horizon_joint" type="fixed">
+    <parent link="chassis_link" />
+    <child link="horizon_frame" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </joint>
+
   <link name="imu_link"> </link>
   <joint name="imu_joint" type="fixed">
     <parent link="chassis_link" />
