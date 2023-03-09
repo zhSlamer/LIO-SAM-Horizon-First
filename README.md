@@ -1,3 +1,25 @@
+# 更改方案
+edited by zhaoheng
+
+TODO:  
+运行多个算法和数据集，进行比较  
+需要大量修改LIOSAM前端提取，主要参考LILI-OM，LIO-LIVOX，liorf; 后续有时间看FAST-LIO 
+主要分析存在的问题并进行改进和实验，增加论文内容。  
+核心：过程中发现创新点和改进点，需阅读论文，列出改进方向    
+  
+2023-3-9
+1. 为使horizon适配liosam，在liosam中增加了horizonFormatConverter.cpp，并自定义点云格式，增加了ring和time。  
+运行方法：
+```
+source devel/setup.bash
+rosrun lio_sam horizonFormatConverter
+```
+2. 使用horizon内置IMU，use_internal_imu = true  
+BMI1088输出加速度单位为g， gnorm=9.805, 加速度乘以g，转为m/s^2
+
+2023-3-6：  
+增加imuType变量，适配6轴和9轴，精度变化不大 
+
 # LIO-SAM
 
 **A real-time lidar-inertial odometry package. We strongly recommend the users read this document thoroughly and test the package with the provided dataset first. A video of the demonstration of the method can be found on [YouTube](https://www.youtube.com/watch?v=A0H8CoORZJU).**
