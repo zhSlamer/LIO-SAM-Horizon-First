@@ -2,7 +2,7 @@ lio_sam:
 
   # Topics
   pointCloudTopic: "/velodyne_points"               # Point cloud data
-  imuTopic: "/os1_cloud_node/imu"                         # IMU data
+  imuTopic: "/livox/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
   gpsTopic: "odometry/gpsz"                   # GPS odometry topic from navsat, see module_navsat.launch file
 
@@ -31,7 +31,17 @@ lio_sam:
   lidarMaxRange: 1000.0                       # default: 1000.0, maximum lidar range to be used
 
   # IMU Settings
+  use_internal_imu: false                      # use livox internal imu 
   imuType: 0                                  # 0:6axis 1:9axis
+
+  #------------hoirozn bmi1088 imu-----------
+  # imuAccNoise: 0.08
+  # imuGyrNoise: 0.004
+  # imuAccBiasN: 2.0e-4
+  # imuGyrBiasN: 2.0e-5
+  # imuGravity: 9.80511
+  # imuRPYWeight: 0.01
+
   imuAccNoise: 3.9939570888238808e-03
   imuGyrNoise: 1.5636343949698187e-03
   imuAccBiasN: 6.4356659353532566e-05
@@ -40,8 +50,10 @@ lio_sam:
   imuRPYWeight: 0.01
 
   # Extrinsics: T_lb (lidar -> imu)
-  extrinsicTrans: [0.27, 0.47, -0.08]
-  #extrinsicTrans: [0.09, 0.17, -0.25]
+  
+  #extrinsicTrans: [0.27, 0.47, -0.08]
+  #extrinsicTrans: [0.09, 0.17, -0.25]    # horizon imu to vlp16 extrinsicTrans: [-0.05512, -0.02226, 0.0297]
+  extrinsicTrans: [0.03488, 0.14774, -0.2203]
   # extrinsicRot: [-1, 0, 0,
   #                 0, 1, 0,
   #                 0, 0, -1]

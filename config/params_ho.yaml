@@ -2,8 +2,8 @@ lio_sam:
 
   # Topics
   horizonCloudTopic : "/livox/lidar"
+  imuTopic: "/livox/imu"                       # IMU data
   pointCloudTopic: "/points_raw"               # Point cloud data
-  imuTopic: "/livox/imu"               # IMU data
   # imuTopic: "/livox/imu" 
   # imuTopic: "/imu/data" 
   # pointCloudTopic: "/points_raw"             # Point cloud data

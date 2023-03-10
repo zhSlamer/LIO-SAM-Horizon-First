@@ -5,6 +5,9 @@
     <!-- Parameters -->
     <rosparam file="$(find lio_sam)/config/params_ho.yaml" command="load" />
 
+    <!--- horizonFormatConverter -->
+    <node pkg="$(arg project)" type="horizonFormatConverter"   name="horizonFormatConverter"    output="screen" 	respawn="true"/>
+
     <!--- LOAM -->
     <include file="$(find lio_sam)/launch/include/module_loam.launch" />
 
