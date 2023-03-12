@@ -91,9 +91,9 @@ public:
     ImageProjection():
     deskewFlag(0)
     {
-        subImu        = nh.subscribe<sensor_msgs::Imu>(imuTopic, 2000, &ImageProjection::imuHandler, this, ros::TransportHints().tcpNoDelay());
-        subOdom       = nh.subscribe<nav_msgs::Odometry>(odomTopic+"_incremental", 2000, &ImageProjection::odometryHandler, this, ros::TransportHints().tcpNoDelay());
-        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 200, &ImageProjection::cloudHandler, this, ros::TransportHints().tcpNoDelay());
+        subImu        = nh.subscribe<sensor_msgs::Imu>(imuTopic, imuRate, &ImageProjection::imuHandler, this, ros::TransportHints().tcpNoDelay());
+        subOdom       = nh.subscribe<nav_msgs::Odometry>(odomTopic+"_incremental", imuRate, &ImageProjection::odometryHandler, this, ros::TransportHints().tcpNoDelay());
+        subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>(pointCloudTopic, 100, &ImageProjection::cloudHandler, this, ros::TransportHints().tcpNoDelay());
 
         pubExtractedCloud = nh.advertise<sensor_msgs::PointCloud2> ("lio_sam/deskew/cloud_deskewed", 1);
         pubLaserCloudInfo = nh.advertise<lio_sam::cloud_info> ("lio_sam/deskew/cloud_info", 1);
@@ -155,17 +155,17 @@ public:
 
         // debug IMU data
         
-        cout << "---------------------HORIZON----------------------------" << endl;
-        cout << "horizon time:" << thisImu.header.stamp.sec << " , "<<thisImu.header.stamp.nsec << endl;
-        cout << std::setprecision(6);
-        cout << "IMU acc: " << endl;
-        cout << "x: " << thisImu.linear_acceleration.x << 
-              ", y: " << thisImu.linear_acceleration.y << 
-              ", z: " << thisImu.linear_acceleration.z << endl;
-        cout << "IMU gyro: " << endl;
-        cout << "x: " << thisImu.angular_velocity.x << 
-              ", y: " << thisImu.angular_velocity.y << 
-              ", z: " << thisImu.angular_velocity.z << endl;
+        // cout << "---------------------HORIZON----------------------------" << endl;
+        // cout << "horizon time:" << thisImu.header.stamp.sec << " , "<<thisImu.header.stamp.nsec << endl;
+        // cout << std::setprecision(6);
+        // cout << "IMU acc: " << endl;
+        // cout << "x: " << thisImu.linear_acceleration.x << 
+        //       ", y: " << thisImu.linear_acceleration.y << 
+        //       ", z: " << thisImu.linear_acceleration.z << endl;
+        // cout << "IMU gyro: " << endl;
+        // cout << "x: " << thisImu.angular_velocity.x << 
+        //       ", y: " << thisImu.angular_velocity.y << 
+        //       ", z: " << thisImu.angular_velocity.z << endl;
         // double imuRoll, imuPitch, imuYaw;
         // tf::Quaternion orientation;
         // tf::quaternionMsgToTF(thisImu.orientation, orientation);

@@ -69,6 +69,8 @@ public:
     ros::NodeHandle nh;
 
     std::string robot_id;
+    // use ros time to sync stamp lidar IMU and tiers groundtruth
+    bool use_ros_time;
 
     //Topics
     string horizonCloudTopic;
@@ -105,6 +107,7 @@ public:
     bool use_internal_imu;
     const double gnorm = 9.805;
     int imuType;
+    float imuRate;
     float imuAccNoise;
     float imuGyrNoise;
     float imuAccBiasN;
@@ -160,6 +163,7 @@ public:
     ParamServer()
     {
         nh.param<std::string>("/robot_id", robot_id, "roboat");
+        nh.param<bool>("/lio_sam/use_ros_time", use_ros_time, false);
 
         nh.param<std::string>("lio_sam/horizonCloudTopic", horizonCloudTopic, "livox/lidar");
         nh.param<std::string>("lio_sam/pointCloudTopic", pointCloudTopic, "points_raw");
@@ -209,6 +213,7 @@ public:
 
         nh.param<bool>("lio_sam/use_internal_imu", use_internal_imu, false);
         nh.param<int>("lio_sam/imuType", imuType, 0);
+        nh.param<float>("lio_sam/imuRate", imuRate, 500);
         nh.param<float>("lio_sam/imuAccNoise", imuAccNoise, 0.01);
         nh.param<float>("lio_sam/imuGyrNoise", imuGyrNoise, 0.001);
         nh.param<float>("lio_sam/imuAccBiasN", imuAccBiasN, 0.0002);

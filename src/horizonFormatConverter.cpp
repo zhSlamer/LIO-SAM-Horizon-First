@@ -9,7 +9,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/Imu.h>
-
+#include <geometry_msgs/PoseStamped.h>
 
 using namespace std;
 #define   PI      3.1415926535
@@ -38,15 +38,32 @@ public:
 
     ros::Subscriber sub_livox_horizon;
     ros::Publisher pub_ros_points;
-    ros::Subscriber subImu1;
+    ros::Subscriber subgroundTruth;
+    ros::Publisher pubGT;
+    ros::Subscriber subImuMsg;
+    ros::Publisher pubImuMsg;
 
     //构造函数 初始化
     LivoxHorizon()
     {
+        // 订阅horizon点云格式，发布为pcl，rosmsg点云格式
         frame_id = "horizon_frame";
-        sub_livox_horizon = nodeHandler.subscribe<livox_ros_driver::CustomMsg>(horizonCloudTopic, 200, &LivoxHorizon::horizonCloudHandler, this, ros::TransportHints().tcpNoDelay());
-        pub_ros_points = nodeHandler.advertise<sensor_msgs::PointCloud2>("/points_raw", 200);
-        //subImu1        = nh.subscribe<sensor_msgs::Imu>("/os1_cloud_node/imu", 2000, &LivoxHorizon::imuHandler1, this, ros::TransportHints().tcpNoDelay());
+        sub_livox_horizon = nodeHandler.subscribe<livox_ros_driver::CustomMsg>(horizonCloudTopic, 100, &LivoxHorizon::horizonCloudHandler, this, ros::TransportHints().tcpNoDelay());
+        pub_ros_points = nodeHandler.advertise<sensor_msgs::PointCloud2>("/points_raw", 100);
+
+        if(use_ros_time)
+        {
+            // 订阅bag中的真值，使用ros时间，重新发布 /groundTruth
+            subgroundTruth = nodeHandler.subscribe<geometry_msgs::PoseStamped>("/vrpn_client_node/qingqing/pose", 100, &LivoxHorizon::groundTruthHandler, this, ros::TransportHints().tcpNoDelay());
+            pubGT = nodeHandler.advertise<geometry_msgs::PoseStamped>("/groundTruth", 100); 
+            // 我们需要订阅bag中的IMU数据，使用ros::Time::now时间戳，重新发布imuTopic
+            subImuMsg = nodeHandler.subscribe<sensor_msgs::Imu>("/livox/imu", imuRate, &LivoxHorizon::imuMsgHandler, this, ros::TransportHints().tcpNoDelay());
+            pubImuMsg = nodeHandler.advertise<sensor_msgs::Imu>(imuTopic, imuRate);
+        }
+        else
+        {
+            ROS_INFO(">>>>>>>>>Don't use ros time : false");
+        }
 
     }
 
@@ -76,7 +93,17 @@ public:
             pcl_in.push_back(pt);
         }
 
-        ros::Time timestamp(livox_msg_in->header.stamp.toSec());
+        //ros::Time timestamp(livox_msg_in->header.stamp);
+        ros::Time timestamp;
+        if(use_ros_time)
+        {
+            timestamp = ros::Time::now();
+        }
+        else{
+            timestamp = livox_msg_in->header.stamp;
+        }
+        //cout << "ros::Time::now() sec: " << timestamp.sec <<" nsec: " << timestamp.nsec << endl;
+        //cout << "stamp sec: " << livox_msg_in->header.stamp.sec <<" nsec: " << livox_msg_in->header.stamp.nsec << endl;
 
         sensor_msgs::PointCloud2 pcl_rosmsg;
         pcl::toROSMsg(pcl_in, pcl_rosmsg);
@@ -86,45 +113,22 @@ public:
         pub_ros_points.publish(pcl_rosmsg);
     }
 
-    // ----------------os1----------------------------------------
-    void imuHandler1(const sensor_msgs::Imu::ConstPtr& imuMsg)
+    void groundTruthHandler(const geometry_msgs::PoseStamped::ConstPtr& gtMsg)
     {
-        return;
-        sensor_msgs::Imu thisImu = imuConverter(*imuMsg);
-
-        // debug IMU data
-        
-        cout << "----------------------OS1----------------------------" << endl;
-        cout << "OS1 time:" << thisImu.header.stamp.sec << " . "<<thisImu.header.stamp.nsec << endl;
-        cout << std::setprecision(6);
-        cout << "OS1 IMU acc: " << endl;
-        cout << "x: " << thisImu.linear_acceleration.x << 
-              ", y: " << thisImu.linear_acceleration.y << 
-              ", z: " << thisImu.linear_acceleration.z << endl;
-        cout << "OS1 IMU gyro: " << endl;
-        cout << "x: " << thisImu.angular_velocity.x << 
-              ", y: " << thisImu.angular_velocity.y << 
-              ", z: " << thisImu.angular_velocity.z << endl;
-
-        // sensor_msgs::Imu thisImu1 = imuQueue.front();
-        // cout << std::setprecision(6);
-        // cout << "horizon time:" << thisImu1.header.stamp.toSec() << endl;
-        // cout << "horizon IMU acc: " << endl;
-        // cout << "x: " << thisImu1.linear_acceleration.x << 
-        //       ", y: " << thisImu1.linear_acceleration.y << 
-        //       ", z: " << thisImu1.linear_acceleration.z << endl;
-        // cout << "horizon IMU gyro: " << endl;
-        // cout << "x: " << thisImu1.angular_velocity.x << 
-        //       ", y: " << thisImu1.angular_velocity.y << 
-        //       ", z: " << thisImu1.angular_velocity.z << endl;
-        // double imuRoll, imuPitch, imuYaw;
-        // tf::Quaternion orientation;
-        // tf::quaternionMsgToTF(thisImu.orientation, orientation);
-        // tf::Matrix3x3(orientation).getRPY(imuRoll, imuPitch, imuYaw);
-        // cout << "IMU roll pitch yaw: " << endl;
-        // cout << "roll: " << imuRoll << ", pitch: " << imuPitch << ", yaw: " << imuYaw << endl << endl;
+        geometry_msgs::PoseStamped ps = *gtMsg;
+        ros::Time stamp= ros::Time::now();
+        ps.header.stamp = stamp;
+        pubGT.publish(ps);
     }
 
+    void imuMsgHandler(const sensor_msgs::Imu::ConstPtr& imuMsg)
+    {
+        sensor_msgs::Imu thisMsg = *imuMsg;
+        ros::Time stamp = ros::Time::now();
+        thisMsg.header.stamp = stamp;
+        pubImuMsg.publish(thisMsg);
+    }
+    
 };
 
 int main(int argc, char** argv)

@@ -43,6 +43,7 @@ public:
 
     TransformFusion()
     {
+        // 监听 lidar2Baselink 变换
         if(lidarFrame != baselinkFrame)
         {
             try
@@ -57,9 +58,9 @@ public:
         }
 
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("lio_sam/mapping/odometry", 5, &TransformFusion::lidarOdometryHandler, this, ros::TransportHints().tcpNoDelay());
-        subImuOdometry   = nh.subscribe<nav_msgs::Odometry>(odomTopic+"_incremental",   2000, &TransformFusion::imuOdometryHandler,   this, ros::TransportHints().tcpNoDelay());
+        subImuOdometry   = nh.subscribe<nav_msgs::Odometry>(odomTopic+"_incremental",   imuRate, &TransformFusion::imuOdometryHandler,   this, ros::TransportHints().tcpNoDelay());
 
-        pubImuOdometry   = nh.advertise<nav_msgs::Odometry>(odomTopic, 2000);
+        pubImuOdometry   = nh.advertise<nav_msgs::Odometry>(odomTopic, imuRate);
         pubImuPath       = nh.advertise<nav_msgs::Path>    ("lio_sam/imu/path", 1);
     }
 
@@ -75,6 +76,7 @@ public:
         return pcl::getTransformation(x, y, z, roll, pitch, yaw);
     }
 
+    
     void lidarOdometryHandler(const nav_msgs::Odometry::ConstPtr& odomMsg)
     {
         std::lock_guard<std::mutex> lock(mtx);
@@ -84,6 +86,7 @@ public:
         lidarOdomTime = odomMsg->header.stamp.toSec();
     }
 
+    // sub /odometry/imu_incremental imu增量里程计
     void imuOdometryHandler(const nav_msgs::Odometry::ConstPtr& odomMsg)
     {
         // static tf
@@ -105,6 +108,8 @@ public:
             else
                 break;
         }
+        // sub /lio_sam/mapping/odometry 的lidarOdomAffine为闭环因子或者GPS因子调整后的全局lidar位姿，非增量式的激光里程计
+        // 计算最新imu里程计到当前全局lidar帧时间的相对位姿增量（预积分），再叠加到全局lidar帧位姿，即可得优化后的实时位姿 pub odometryTopic:"odometry/imu"
         Eigen::Affine3f imuOdomAffineFront = odom2affine(imuOdomQueue.front());
         Eigen::Affine3f imuOdomAffineBack = odom2affine(imuOdomQueue.back());
         Eigen::Affine3f imuOdomAffineIncre = imuOdomAffineFront.inverse() * imuOdomAffineBack;
@@ -112,7 +117,7 @@ public:
         float x, y, z, roll, pitch, yaw;
         pcl::getTranslationAndEulerAngles(imuOdomAffineLast, x, y, z, roll, pitch, yaw);
         
-        // publish latest odometry
+        // publish latest odometry    更新经全局lidar调增后的imu里程计 "odometry/imu"
         nav_msgs::Odometry laserOdometry = imuOdomQueue.back();
         laserOdometry.pose.pose.position.x = x;
         laserOdometry.pose.pose.position.y = y;
@@ -133,6 +138,7 @@ public:
         static nav_msgs::Path imuPath;
         static double last_path_time = -1;
         double imuTime = imuOdomQueue.back().header.stamp.toSec();
+        // 发布频率控制在10Hz
         if (imuTime - last_path_time > 0.1)
         {
             last_path_time = imuTime;
@@ -206,10 +212,10 @@ public:
 
     IMUPreintegration()
     {
-        subImu      = nh.subscribe<sensor_msgs::Imu>  (imuTopic,                   2000, &IMUPreintegration::imuHandler,      this, ros::TransportHints().tcpNoDelay());
+        subImu      = nh.subscribe<sensor_msgs::Imu>  (imuTopic, imuRate, &IMUPreintegration::imuHandler,      this, ros::TransportHints().tcpNoDelay());
         subOdometry = nh.subscribe<nav_msgs::Odometry>("lio_sam/mapping/odometry_incremental", 5,    &IMUPreintegration::odometryHandler, this, ros::TransportHints().tcpNoDelay());
 
-        pubImuOdometry = nh.advertise<nav_msgs::Odometry> (odomTopic+"_incremental", 2000);
+        pubImuOdometry = nh.advertise<nav_msgs::Odometry> (odomTopic+"_incremental", imuRate);
 
         boost::shared_ptr<gtsam::PreintegrationParams> p = gtsam::PreintegrationParams::MakeSharedU(imuGravity);
         p->accelerometerCovariance  = gtsam::Matrix33::Identity(3,3) * pow(imuAccNoise, 2); // acc white noise in continuous
@@ -355,7 +361,7 @@ public:
             double imuTime = ROS_TIME(thisImu);
             if (imuTime < currentCorrectionTime - delta_t)
             {
-                double dt = (lastImuT_opt < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_opt);
+                double dt = (lastImuT_opt < 0) ? (1.0 / imuRate) : (imuTime - lastImuT_opt);
                 imuIntegratorOpt_->integrateMeasurement(
                         gtsam::Vector3(thisImu->linear_acceleration.x, thisImu->linear_acceleration.y, thisImu->linear_acceleration.z),
                         gtsam::Vector3(thisImu->angular_velocity.x,    thisImu->angular_velocity.y,    thisImu->angular_velocity.z), dt);
@@ -423,7 +429,7 @@ public:
             {
                 sensor_msgs::Imu *thisImu = &imuQueImu[i];
                 double imuTime = ROS_TIME(thisImu);
-                double dt = (lastImuQT < 0) ? (1.0 / 500.0) :(imuTime - lastImuQT);
+                double dt = (lastImuQT < 0) ? (1.0 / imuRate) :(imuTime - lastImuQT);
 
                 imuIntegratorImu_->integrateMeasurement(gtsam::Vector3(thisImu->linear_acceleration.x, thisImu->linear_acceleration.y, thisImu->linear_acceleration.z),
                                                         gtsam::Vector3(thisImu->angular_velocity.x,    thisImu->angular_velocity.y,    thisImu->angular_velocity.z), dt);
@@ -468,7 +474,25 @@ public:
             return;
 
         double imuTime = ROS_TIME(&thisImu);
-        double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+
+        // 刚相等，这必然相等阿！ 放前面
+        if(imuTime == lastImuT_imu)
+        {
+            cout << "imuTime == lastImu_imu :" << imuTime << " | " << lastImuT_imu << endl;
+            cout << "sec: " << thisImu.header.stamp.sec << "nsec: " << thisImu.header.stamp.nsec << endl;
+        }
+        else if(imuTime - lastImuT_imu < 0)
+        {
+            cout << "imuTime < lastImu_imu" << imuTime << " | " << lastImuT_imu << endl;
+        }
+        //cout << std::setprecision(9);
+        //cout << "imuTime: " << imuTime-1678529900 << endl;
+        // 找到问题了， 代码中原始lio_sam使用的是500Hz的Imu，所以控制了dt时间，与内置IMU 200Hz不符合
+        // dt 应该是 nsec变化量
+        //double dt = (lastImuT_imu < 0) ? (1.0 / 500.0) : (imuTime - lastImuT_imu);
+        double dt = (lastImuT_imu < 0) ? (1.0 / imuRate) : (imuTime - lastImuT_imu);
+        //cout << "dt: " << dt << endl;
+        //使用ros::time::now() 时间有问题
         lastImuT_imu = imuTime;
 
         // integrate this single imu message
