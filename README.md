@@ -1,7 +1,7 @@
 # 更改方案
 edited by zhaoheng
 
-TODO:  
+## TODO:  
 运行多个算法和数据集，进行比较  
 需要大量修改LIOSAM前端提取，主要参考LILI-OM，LIO-LIVOX，liorf; 后续有时间看FAST-LIO 
 主要分析存在的问题并进行改进和实验，增加论文内容。  
