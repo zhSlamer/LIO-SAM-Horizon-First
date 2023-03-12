@@ -6,6 +6,8 @@ edited by zhaoheng
 需要大量修改LIOSAM前端提取，主要参考LILI-OM，LIO-LIVOX，liorf; 后续有时间看FAST-LIO 
 主要分析存在的问题并进行改进和实验，增加论文内容。  
 核心：过程中发现创新点和改进点，需阅读论文，列出改进方向  
+
+## 工作内容：
   
 2023-3-12
 1. 增加了imuRate参数，根据实际调整imuRate;  
