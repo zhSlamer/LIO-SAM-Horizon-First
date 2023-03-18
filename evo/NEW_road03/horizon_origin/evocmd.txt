@@ -1,0 +1,2 @@
+evo_traj bag liosam-vlp16.bag /odometry/imu --ref /mavros/local_position/odom -v -a --plot --plot_mode xy
+evo_ape bag liosam-vlp16.bag /mavros/local_position/odom /odometry/imu -v -a -p --plot_mode xy --save_results vlp16.zip 

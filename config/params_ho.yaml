@@ -1,10 +1,10 @@
 lio_sam:
 
-  use_ros_time: true                           # use ros time to sync stamp lidar IMU and tiers groundtruth
+  use_ros_time: false                           # use ros time to sync stamp lidar IMU and tiers groundtruth
   # if you use_ros_time , you need to change grouthTruth time and IMU time sub bag and pub /imu
   # Topics
-  horizonCloudTopic : "/livox/lidar"
-  imuTopic: "/imu"                             # IMU data
+  horizonCloudTopic : "/horizon/livox/lidar"
+  imuTopic: "/horizon/livox/imu"               # IMU data
   pointCloudTopic: "/points_raw"               # Point cloud data
   # imuTopic: "/livox/imu" 
   # imuTopic: "/imu/data" 
@@ -41,7 +41,7 @@ lio_sam:
   # IMU Settings
   use_internal_imu : true                     # use livox horizon internal imu *gnorm=9.805
   imuType: 0                                  # 0:6axis 1:9axis
-  imuRate: 200.0                                # 增加IMU频率参数，方便计算dt
+  imuRate: 200.0                              # 增加IMU频率参数，方便计算dt
   #------------hoirozn bmi1088 imu-----------
   imuAccNoise: 0.08
   imuGyrNoise: 0.004

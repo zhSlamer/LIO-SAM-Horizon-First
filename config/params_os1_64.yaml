@@ -2,11 +2,11 @@ lio_sam:
 
   # Topics
   # tiers_old_datasets
-  pointCloudTopic: "/os_cloud_nodee/points"               # Point cloud data
-  imuTopic: "/os_cloud_nodee/imu"                         # IMU data
+  # pointCloudTopic: "/os_cloud_nodee/points"               # Point cloud data
+  # imuTopic: "/os_cloud_nodee/imu"                         # IMU data
   # tiers_new_datasets
-  # pointCloudTopic: "/os1_cloud_node/points"               # Point cloud data
-  # imuTopic: "/os1_cloud_node/imu"                         # IMU data
+  pointCloudTopic: "/os1_cloud_node/points"               # Point cloud data
+  imuTopic: "/os1_cloud_node/imu"                         # IMU data
   odomTopic: "odometry/imu"                   # IMU pre-preintegration odometry, same frequency as IMU
   gpsTopic: "odometry/gpsz"                   # GPS odometry topic from navsat, see module_navsat.launch file
 

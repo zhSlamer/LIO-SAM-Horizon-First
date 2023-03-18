@@ -1,0 +1,2 @@
+evo_traj bag horizon_road03_origin.bag /odometry/imu --ref /mavros/local_position/odom -p --n_to_align 100 -v -f --plot_mode xy -a
+evo_ape bag horizon_road03_origin.bag /mavros/local_position/odom /odometry/imu -p -v -a --plot_mode xy --save_results results/horizon_origin.zip 
