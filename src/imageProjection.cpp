@@ -561,6 +561,11 @@ public:
             float range = pointDistance(thisPoint);
             if (range < lidarMinRange || range > lidarMaxRange)
                 continue;
+            
+            if(thisPoint.intensity<0.5 || thisPoint.intensity > 254.5)
+            {
+                continue;
+            }
 
             int rowIdn = laserCloudIn->points[i].ring;
             if (rowIdn < 0 || rowIdn >= N_SCAN)
@@ -580,6 +585,7 @@ public:
             }
             else if (sensor == SensorType::LIVOX)
             {
+                // 记录每根线，存的点的下标
                 columnIdn = columnIdnCountVec[rowIdn];
                 columnIdnCountVec[rowIdn] += 1;
             }
@@ -587,6 +593,7 @@ public:
             if (columnIdn < 0 || columnIdn >= Horizon_SCAN)
                 continue;
 
+            // mat矩阵中已经存储该点
             if (rangeMat.at<float>(rowIdn, columnIdn) != FLT_MAX)
                 continue;
 
@@ -605,6 +612,7 @@ public:
         // extract segmented cloud for lidar odometry
         for (int i = 0; i < N_SCAN; ++i)
         {
+            // 每根线的起始点 从第五个点开始，倒数第五个点结束
             cloudInfo.startRingIndex[i] = count - 1 + 5;
 
             for (int j = 0; j < Horizon_SCAN; ++j)

@@ -150,25 +150,25 @@ public:
         {
             surfaceCloudScan->clear();
 
-            for (int j = 0; j < 6; j++)
-            {
-
-                int sp = (cloudInfo.startRingIndex[i] * (6 - j) + cloudInfo.endRingIndex[i] * j) / 6;
-                int ep = (cloudInfo.startRingIndex[i] * (5 - j) + cloudInfo.endRingIndex[i] * (j + 1)) / 6 - 1;
-
-                if (sp >= ep)
-                    continue;
+                int sp = cloudInfo.startRingIndex[i];
+                int ep = cloudInfo.endRingIndex[i];
 
                 std::sort(cloudSmoothness.begin()+sp, cloudSmoothness.begin()+ep, by_value());
-
+                // 剔除了 6环形分区特征提取
+                // 找到问题了，排序数值不对 ep结尾的阈值错误，下标应该从ep-1开始cloudSmoothness[ep-1].ind
                 int largestPickedNum = 0;
-                for (int k = ep; k >= sp; k--)
+                // cout << "1 Smooth = " <<  cloudCurvature[cloudSmoothness[ep].ind] << ", 2 s = " << cloudCurvature[cloudSmoothness[ep-1].ind] << endl;
+                // cout << "3 Smooth = " <<  cloudCurvature[cloudSmoothness[ep-2].ind] << ", 4 s = " << cloudCurvature[cloudSmoothness[ep-3].ind] << endl;
+                // cout << "5 Smooth = " <<  cloudCurvature[cloudSmoothness[ep-4].ind] << ", 6 s = " << cloudCurvature[cloudSmoothness[ep-5].ind] << endl;
+
+                for (int k = ep-1; k >= sp; k--)
                 {
                     int ind = cloudSmoothness[k].ind;
                     if (cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] > edgeThreshold)
                     {
                         largestPickedNum++;
-                        if (largestPickedNum <= 20){
+                        //if (largestPickedNum <= 20){
+                        if (true){
                             cloudLabel[ind] = 1;
                             cornerCloud->push_back(extractedCloud->points[ind]);
                         } else {
@@ -190,6 +190,12 @@ public:
                                 break;
                             cloudNeighborPicked[ind + l] = 1;
                         }
+                        
+                    }
+                    else if(cloudNeighborPicked[ind] == 0 && cloudCurvature[ind] <= edgeThreshold)
+                    {
+                        //cout << "edge num" << largestPickedNum << endl;
+                        break;
                     }
                 }
 
@@ -227,7 +233,6 @@ public:
                         surfaceCloudScan->push_back(extractedCloud->points[k]);
                     }
                 }
-            }
 
             surfaceCloudScanDS->clear();
             downSizeFilter.setInputCloud(surfaceCloudScan);

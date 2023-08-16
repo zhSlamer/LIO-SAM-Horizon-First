@@ -5,5 +5,9 @@
     ],
     "files.associations": {
         "ostream": "cpp"
-    }
+    },
+    "python.analysis.extraPaths": [
+        "/home/zh/LidarAlgorithm/edit/lio_sam_horizon-ours/devel/lib/python3/dist-packages",
+        "/opt/ros/noetic/lib/python3/dist-packages"
+    ]
 }

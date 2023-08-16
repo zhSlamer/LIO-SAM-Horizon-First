@@ -3,7 +3,7 @@
     <arg name="project" default="lio_sam"/>
     
     <!-- Parameters -->
-    <rosparam file="$(find lio_sam)/config/params_ho.yaml" command="load" />
+    <rosparam file="$(find lio_sam)/config/params_ho_indoor.yaml" command="load" />
 
     <!--- horizonFormatConverter -->
     <node pkg="$(arg project)" type="horizonFormatConverter"   name="horizonFormatConverter"    output="screen" 	respawn="true"/>

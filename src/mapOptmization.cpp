@@ -153,6 +153,7 @@ public:
     Eigen::Affine3f incrementalOdometryAffineFront;
     Eigen::Affine3f incrementalOdometryAffineBack;
 
+    unsigned int frames_num = 0;
 
     mapOptimization()
     {
@@ -237,6 +238,7 @@ public:
     void laserCloudInfoHandler(const lio_sam::cloud_infoConstPtr& msgIn)
     {
         // extract time stamp
+        frames_num ++;
         timeLaserInfoStamp = msgIn->header.stamp;
         timeLaserInfoCur = msgIn->header.stamp.toSec();
 
@@ -248,8 +250,9 @@ public:
         std::lock_guard<std::mutex> lock(mtx);
 
         static double timeLastProcessing = -1;
-        if (timeLaserInfoCur - timeLastProcessing >= mappingProcessInterval)
+        if (timeLaserInfoCur - timeLastProcessing >= mappingProcessInterval)  //会掉帧,不足之处, 丢失信息---需要加速优化 与特征点有关联，需要联系计算
         {
+            Timer t_pre("scan2map");
             timeLastProcessing = timeLaserInfoCur;
 
             updateInitialGuess();
@@ -267,7 +270,16 @@ public:
             publishOdometry();
 
             publishFrames();
+            t_pre.tic_toc();
+            // 前面声明 double runtime = 0;
+            //runtime += t_pre.toc();
+            // pre_num ++ ; runtime/pre_num 
         }
+        else
+        {
+            std::cout << (timeLaserInfoCur - timeLastProcessing) << " < mappingProcessingInterval 0.15s, skipp this frame" << endl;
+        }
+        printf("---------------------frame: %d ----------------------\n", frames_num);
     }
 
     void gpsHandler(const nav_msgs::Odometry::ConstPtr& gpsMsg)
@@ -806,6 +818,7 @@ public:
         // use imu pre-integration estimation for pose guess
         static bool lastImuPreTransAvailable = false;
         static Eigen::Affine3f lastImuPreTransformation;
+        // 利用odom增量更新上一帧位姿
         if (cloudInfo.odomAvailable == true)
         {
             Eigen::Affine3f transBack = pcl::getTransformation(cloudInfo.initialGuessX,    cloudInfo.initialGuessY,     cloudInfo.initialGuessZ, 
@@ -828,6 +841,7 @@ public:
             }
         }
 
+        // 当odom不可用时用RPY更新
         // use imu incremental estimation for pose guess (only rotation)
         if (cloudInfo.imuAvailable == true && imuType)
         {
@@ -861,6 +875,7 @@ public:
 
     void extractNearby()
     {
+        // 当前的局部地图由50m的空间与10s内的时间关键帧组成
         pcl::PointCloud<PointType>::Ptr surroundingKeyPoses(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr surroundingKeyPosesDS(new pcl::PointCloud<PointType>());
         std::vector<int> pointSearchInd;
@@ -875,13 +890,31 @@ public:
             surroundingKeyPoses->push_back(cloudKeyPoses3D->points[id]);
         }
 
-        downSizeFilterSurroundingKeyPoses.setInputCloud(surroundingKeyPoses);
-        downSizeFilterSurroundingKeyPoses.filter(*surroundingKeyPosesDS);
-        for(auto& pt : surroundingKeyPosesDS->points)
+        // 若周围关键帧过多
+        unsigned int key_num = surroundingKeyPoses->size();
+        float setDS;
+        if(surroundingKeyPoses->size() >= 50) //150
         {
-            kdtreeSurroundingKeyPoses->nearestKSearch(pt, 1, pointSearchInd, pointSearchSqDis);
-            pt.intensity = cloudKeyPoses3D->points[pointSearchInd[0]].intensity;
+            setDS = surroundingKeyframeDensity * key_num/50.0; //50
+            if(setDS < 1)
+            {
+                setDS = setDS + setDS*setDS;
+            }
+            downSizeFilterSurroundingKeyPoses.setLeafSize(setDS, setDS, setDS);
+            downSizeFilterSurroundingKeyPoses.setInputCloud(surroundingKeyPoses);
+            downSizeFilterSurroundingKeyPoses.filter(*surroundingKeyPosesDS);
+            for(auto& pt : surroundingKeyPosesDS->points)
+            {
+                kdtreeSurroundingKeyPoses->nearestKSearch(pt, 1, pointSearchInd, pointSearchSqDis);
+                pt.intensity = cloudKeyPoses3D->points[pointSearchInd[0]].intensity;
+            }
         }
+        else
+        {
+            pcl::copyPointCloud(*surroundingKeyPoses,  *surroundingKeyPosesDS);
+        }
+        printf("surrKeyposeori %d, surrKeyposeDS %d, setDS %f.\n", key_num, surroundingKeyPosesDS->size(), setDS);
+
 
         // also extract some latest key frames in case the robot rotates in one position
         int numPoses = cloudKeyPoses3D->size();
@@ -898,7 +931,7 @@ public:
 
     void extractCloud(pcl::PointCloud<PointType>::Ptr cloudToExtract)
     {
-        // fuse the map
+        // fuse the map-----非滑动窗口，即每一次局部地图的组成需要重新创建局部地图，效率低，属于用时间换取空间
         laserCloudCornerFromMap->clear();
         laserCloudSurfFromMap->clear(); 
         for (int i = 0; i < (int)cloudToExtract->size(); ++i)
@@ -924,17 +957,23 @@ public:
         }
 
         // Downsample the surrounding corner key frames (or map)
-        downSizeFilterCorner.setInputCloud(laserCloudCornerFromMap);
-        downSizeFilterCorner.filter(*laserCloudCornerFromMapDS);
+        // downSizeFilterCorner.setInputCloud(laserCloudCornerFromMap);
+        // downSizeFilterCorner.filter(*laserCloudCornerFromMapDS);
+        pcl::copyPointCloud(*laserCloudCornerFromMap,  *laserCloudCornerFromMapDS);
         laserCloudCornerFromMapDSNum = laserCloudCornerFromMapDS->size();
         // Downsample the surrounding surf key frames (or map)
         downSizeFilterSurf.setInputCloud(laserCloudSurfFromMap);
         downSizeFilterSurf.filter(*laserCloudSurfFromMapDS);
+        // pcl::copyPointCloud(*laserCloudSurfFromMap,  *laserCloudSurfFromMapDS);
         laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
 
         // clear map cache if too large
         if (laserCloudMapContainer.size() > 1000)
+        {
+            printf("map cache too large so clear it.\n");
             laserCloudMapContainer.clear();
+        }
+            
     }
 
     void extractSurroundingKeyFrames()
@@ -955,15 +994,48 @@ public:
     void downsampleCurrentScan()
     {
         // Downsample cloud from current scan
+        float cornerDS=0;
         laserCloudCornerLastDS->clear();
-        downSizeFilterCorner.setInputCloud(laserCloudCornerLast);
-        downSizeFilterCorner.filter(*laserCloudCornerLastDS);
+        if(laserCloudCornerLast->size() <= 800)
+        {
+            pcl::copyPointCloud(*laserCloudCornerLast,  *laserCloudCornerLastDS);
+        }
+        else
+        {
+            //cornerDS = 0.1 * laserCloudCornerLast->size()/600.0;
+            //downSizeFilterCorner.setLeafSize(cornerDS, cornerDS, cornerDS);
+            downSizeFilterCorner.setInputCloud(laserCloudCornerLast);
+            downSizeFilterCorner.filter(*laserCloudCornerLastDS);
+        }
         laserCloudCornerLastDSNum = laserCloudCornerLastDS->size();
+        printf("this scan corner %d, cornerDSnum %d, cornerDScoeff %f.\n", laserCloudCornerLast->size(), laserCloudCornerLastDS->size(), cornerDS);
 
+        float surfDS=0, tempDS=0;
         laserCloudSurfLastDS->clear();
-        downSizeFilterSurf.setInputCloud(laserCloudSurfLast);
-        downSizeFilterSurf.filter(*laserCloudSurfLastDS);
+        // 面点过少，不降采样
+        if(laserCloudSurfLast->size()<=3500)
+        {
+            pcl::copyPointCloud(*laserCloudSurfLast,  *laserCloudSurfLastDS);
+        }
+        else
+        {
+            if(useDSset)
+            {
+                //surfDS = 0.01 * laserCloudSurfLast->size()/5000.0;
+                
+                // 室外数据集 待调整
+                // odometrySurfLeafSize为0.2
+                // 线上数据集 室内0.3-0.1为宜，面点需求保持在4000
+                // 室内长廊 odometrySurfLeafSize为0.1， mappingSurfLeafSize 0.1；要求保证4500面点需求，因为在面临尽头时信息丢失严重， 即9000对应为0.1， 4500以下为0.01
+                tempDS = mappingSurfLeafSize*(laserCloudSurfLast->size()/4500.0 -1);
+                surfDS = tempDS > 0 ? tempDS : 0.01;
+                downSizeFilterSurf.setLeafSize(surfDS, surfDS, surfDS);
+            }
+            downSizeFilterSurf.setInputCloud(laserCloudSurfLast);
+            downSizeFilterSurf.filter(*laserCloudSurfLastDS);
+        }
         laserCloudSurfLastDSNum = laserCloudSurfLastDS->size();
+        printf("this scan surf %d, surfDSnum %d, surfDScoeff %f.\n", laserCloudSurfLast->size(), laserCloudSurfLastDS->size(), surfDS);
     }
 
     void updatePointAssociateToMap()
@@ -1257,6 +1329,7 @@ public:
             matX = matP * matX2;
         }
 
+        // 在这里已经对姿态进行更新迭代了
         transformTobeMapped[0] += matX.at<float>(0, 0);
         transformTobeMapped[1] += matX.at<float>(1, 0);
         transformTobeMapped[2] += matX.at<float>(2, 0);
@@ -1284,6 +1357,7 @@ public:
         if (cloudKeyPoses3D->points.empty())
             return;
 
+        // 特征点的数量有一定要求
         if (laserCloudCornerLastDSNum > edgeFeatureMinValidNum && laserCloudSurfLastDSNum > surfFeatureMinValidNum)
         {
             kdtreeCornerFromMap->setInputCloud(laserCloudCornerFromMapDS);
@@ -1302,7 +1376,8 @@ public:
                 if (LMOptimization(iterCount) == true)
                     break;              
             }
-
+            //当lidar点云过少，退化时，必然产生配准错误，z发生明显跳动，进而逐渐崩溃，那么我们因该修改该位姿，抛弃，并沿用IMU位姿, 不行IMU太飘了
+            printf("x %f, y %f, z %f, roll %f, picth %f, raw %f.\n", transformTobeMapped[3], transformTobeMapped[4], transformTobeMapped[5], transformTobeMapped[0],transformTobeMapped[1],transformTobeMapped[2]);
             transformUpdate();
         } else {
             ROS_WARN("Not enough features! Only %d edge and %d planar features available.", laserCloudCornerLastDSNum, laserCloudSurfLastDSNum);
@@ -1311,6 +1386,7 @@ public:
 
     void transformUpdate()
     {
+        // 利用9轴可以约束roll 和 ptich 姿态角，RPY球面插值，数据融合
         if (cloudInfo.imuAvailable == true && imuType)
         {
             if (std::abs(cloudInfo.imuPitchInit) < 1.4)
@@ -1355,7 +1431,7 @@ public:
     {
         if (cloudKeyPoses3D->points.empty())
             return true;
-
+        // 关键帧的选取也从时间和空间上考虑
         if (sensor == SensorType::LIVOX)
         {
             if (timeLaserInfoCur - cloudKeyPoses6D->back().time > 1.0)

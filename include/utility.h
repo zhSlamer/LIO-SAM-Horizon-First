@@ -56,6 +56,8 @@
 #include <thread>
 #include <mutex>
 
+#include "timer.h"
+
 using namespace std;
 
 typedef pcl::PointXYZI PointType;
@@ -132,6 +134,7 @@ public:
     float odometrySurfLeafSize;
     float mappingCornerLeafSize;
     float mappingSurfLeafSize ;
+    bool useDSset;
 
     float z_tollerance; 
     float rotation_tollerance;
@@ -236,6 +239,7 @@ public:
         nh.param<float>("lio_sam/odometrySurfLeafSize", odometrySurfLeafSize, 0.2);
         nh.param<float>("lio_sam/mappingCornerLeafSize", mappingCornerLeafSize, 0.2);
         nh.param<float>("lio_sam/mappingSurfLeafSize", mappingSurfLeafSize, 0.2);
+        nh.param<bool>("lio_sam/useDSset", useDSset, false);
 
         nh.param<float>("lio_sam/z_tollerance", z_tollerance, FLT_MAX);
         nh.param<float>("lio_sam/rotation_tollerance", rotation_tollerance, FLT_MAX);

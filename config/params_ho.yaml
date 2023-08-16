@@ -3,8 +3,8 @@ lio_sam:
   use_ros_time: false                           # use ros time to sync stamp lidar IMU and tiers groundtruth
   # if you use_ros_time , you need to change grouthTruth time and IMU time sub bag and pub /imu
   # Topics
-  horizonCloudTopic : "/horizon/livox/lidar"
-  imuTopic: "/horizon/livox/imu"               # IMU data
+  horizonCloudTopic : "/livox/lidar"
+  imuTopic: "/livox/imu"               # IMU data
   pointCloudTopic: "/points_raw"               # Point cloud data
   # imuTopic: "/livox/imu" 
   # imuTopic: "/imu/data" 
@@ -36,13 +36,17 @@ lio_sam:
   Horizon_SCAN: 4000                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048, Livox Horizon: 4000)
   downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1
   lidarMinRange: 1.0                          # default: 1.0, minimum lidar range to be used
-  lidarMaxRange: 500.0                       # default: 1000.0, maximum lidar range to be used
+  lidarMaxRange: 260.0                       # default: 1000.0, maximum lidar range to be used
 
   # IMU Settings
   use_internal_imu : true                     # use livox horizon internal imu *gnorm=9.805
   imuType: 0                                  # 0:6axis 1:9axis
   imuRate: 200.0                              # 增加IMU频率参数，方便计算dt
   #------------hoirozn bmi1088 imu-----------
+  # imuAccNoise: 0.1
+  # imuGyrNoise: 0.1
+  # imuAccBiasN: 1.0e-4
+  # imuGyrBiasN: 1.0e-5
   imuAccNoise: 0.08
   imuGyrNoise: 0.004
   imuAccBiasN: 2.0e-4
@@ -68,7 +72,7 @@ lio_sam:
   #                 0, 0, -1]
 
   # lili-om horizon dataset /livox/imu
-  extrinsicTrans: [-0.05512, -0.02226, 0.0297]  #lili-om horizon /imu/data
+  extrinsicTrans: [-0.05512, -0.02226, 0.0297]  
   extrinsicRot: [ 1, 0, 0,
                   0, 1, 0,
                   0, 0, 1]
@@ -93,9 +97,10 @@ lio_sam:
   surfFeatureMinValidNum: 100
 
   # voxel filter paprams
-  odometrySurfLeafSize: 0.4                     # default: 0.4 - outdoor, 0.2 - indoor leafSize设置越大，体素格子也越大，滤波明显
+  odometrySurfLeafSize: 0.2                     # default: 0.4 - outdoor, 0.2 - indoor leafSize设置越大，体素格子也越大，滤波明显 长廊0.1 需要更多面点 线上0.2
   mappingCornerLeafSize: 0.2                    # default: 0.2 - outdoor, 0.1 - indoor
-  mappingSurfLeafSize: 0.4                      # default: 0.4 - outdoor, 0.2 - indoor
+  mappingSurfLeafSize: 0.25                      # default: 0.4 - outdoor, 0.2 - indoor 线上数据集0.25
+  useDSset: false                                # 使用映射体素滤波参数，适合室内长廊点云缺失的情况
 
   # robot motion constraint (in case you are using a 2D robot)
   z_tollerance: 1000                            # meters
@@ -106,10 +111,10 @@ lio_sam:
   mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
 
   # Surrounding map
-  surroundingkeyframeAddingDistThreshold: 1.0     # meters, regulate keyframe adding threshold
-  surroundingkeyframeAddingAngleThreshold: 0.2  # radians, regulate keyframe adding threshold
-  surroundingKeyframeDensity: 2.0               # meters, downsample surrounding keyframe poses   
-  surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled)
+  surroundingkeyframeAddingDistThreshold: 0.25     # meters, regulate keyframe adding threshold 0.25
+  surroundingkeyframeAddingAngleThreshold: 0.02  # radians, regulate keyframe adding threshold
+  surroundingKeyframeDensity: 0.5                 # meters, downsample surrounding keyframe poses   0.1  户外要更大
+  surroundingKeyframeSearchRadius: 50.0         # meters, within n meters scan-to-map optimization (when loop closure disabled) 50
 
   # Loop closure
   loopClosureEnableFlag: false                  # close loop

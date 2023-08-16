@@ -70,27 +70,44 @@ public:
     void horizonCloudHandler(const livox_ros_driver::CustomMsgConstPtr& livox_msg_in)
     {
         pcl::PointCloud<Point> pcl_in;
+        unsigned int unvalid_num = 0;
         // 遍历每一个点
-        for(unsigned int i=0; i<livox_msg_in->point_num; ++i)
+        for(unsigned int i=1; i<livox_msg_in->point_num; ++i)
         {
-            Point pt;
-            /* 
-            // the time of first point timebase (ns) = header.stamp (s)
-            cout << "the time of first point--timebase:" << livox_msg_in->timebase << endl;
-            cout << "stamp sec:" << livox_msg_in->header.stamp.toSec() << endl;
-            // offset_time (ns) time relative to the base time
-            cout << "offset_time:" << livox_msg_in->points[i].offset_time << "--line:" << int(livox_msg_in->points[i].line) << endl;
-             */
-            // offset_time 单位是ns， 需要转为s /1000000000.0 10^9 变成浮点数
-            pt.x = livox_msg_in->points[i].x;
-            pt.y = livox_msg_in->points[i].y;
-            pt.z = livox_msg_in->points[i].z;
-            pt.intensity = livox_msg_in->points[i].reflectivity;
-            
-            pt.ring = livox_msg_in->points[i].line;
-            pt.time = livox_msg_in->points[i].offset_time/1000000000.0;  // 浮点数 单位s
-            // cout << "offset_time:" << pt.time << "--line:" << pt.ring << endl;
-            pcl_in.push_back(pt);
+            // 只取线数在0-6内并且回波次序为0或者1的点云
+            if(livox_msg_in->points[i].line < N_SCAN && ((livox_msg_in->points[i].tag & 0x30) == 0x10 || (livox_msg_in->points[i].tag & 0x30) == 0x00))
+            {
+                Point pt;
+                float range, inten;
+                /* 
+                // the time of first point timebase (ns) = header.stamp (s)
+                cout << "the time of first point--timebase:" << livox_msg_in->timebase << endl;
+                cout << "stamp sec:" << livox_msg_in->header.stamp.toSec() << endl;
+                // offset_time (ns) time relative to the base time
+                cout << "offset_time:" << livox_msg_in->points[i].offset_time << "--line:" << int(livox_msg_in->points[i].line) << endl;
+                */
+                // offset_time 单位是ns， 需要转为s /1000000000.0 10^9 变成浮点数
+                pt.x = livox_msg_in->points[i].x;
+                pt.y = livox_msg_in->points[i].y;
+                pt.z = livox_msg_in->points[i].z;
+                pt.intensity = livox_msg_in->points[i].reflectivity;
+                
+                pt.ring = livox_msg_in->points[i].line;
+                pt.time = livox_msg_in->points[i].offset_time/1000000000.0;  // 浮点数 单位s
+                // cout << "offset_time:" << pt.time << "--line:" << pt.ring << endl;
+                pcl_in.push_back(pt);
+                range = pt.x*pt.x + pt.y*pt.y + pt.z*pt.z;
+                // if(pt.intensity<0.5 || pt.intensity > 254.5)
+                // {
+                //     unvalid_num++;
+                //     printf("point inten %f, range %f, unvalid_num %d.\n", pt.intensity, sqrt(range), unvalid_num);
+                // }
+                // inten = pt.intensity/(range*range);
+                // if(inten<=0.007 || inten >= 0.1)
+                // {
+                //     printf("point inten %f, range %f, coeff %f", pt.intensity, range, inten);
+                // }
+            }
         }
 
         //ros::Time timestamp(livox_msg_in->header.stamp);
